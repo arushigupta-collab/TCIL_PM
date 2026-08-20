@@ -54,17 +54,34 @@ export function SourceStatusPill({ status }: { status: SourceStatus }) {
 export function SortHeader({
   label,
   className = "",
+  onClick,
+  active = false,
+  dir = "asc",
 }: {
   label: string;
   className?: string;
+  onClick?: () => void;
+  active?: boolean;
+  dir?: "asc" | "desc";
 }) {
   return (
     <th
-      className={`px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-stone-500 ${className}`}
+      className={`px-5 py-3 text-[11px] font-semibold uppercase tracking-wider ${
+        active ? "text-ink" : "text-stone-500"
+      } ${className}`}
     >
-      <span className="inline-flex cursor-pointer items-center gap-1 select-none hover:text-stone-700">
+      <span
+        onClick={onClick}
+        className={`inline-flex items-center gap-1 select-none ${
+          onClick ? "cursor-pointer hover:text-stone-700" : ""
+        }`}
+      >
         {label}
-        <SortCaret className="text-stone-300" />
+        <SortCaret
+          className={`${active ? "text-stone-600" : "text-stone-300"} ${
+            active && dir === "desc" ? "rotate-180" : ""
+          }`}
+        />
       </span>
     </th>
   );

@@ -193,6 +193,14 @@ export const Target = (p: IconProps) => (
   </Base>
 );
 
+export const Landmark = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M3 21h18" />
+    <path d="M12 3l8 4H4z" />
+    <path d="M6 10v7M10 10v7M14 10v7M18 10v7" />
+  </Base>
+);
+
 export const Route = (p: IconProps) => (
   <Base {...p}>
     <circle cx="6.5" cy="18.5" r="2.5" />

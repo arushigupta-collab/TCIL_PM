@@ -236,3 +236,36 @@ export interface Project {
   slas?: Sla[];
   risks?: Risk[];
 }
+
+/**
+ * A bid the government has awarded externally, routed to the PM for setup.
+ * On acceptance it seeds a full Project (milestones, tasks, SLAs and risks are
+ * derived from the tender document and AI; the team is confirmed by the PM).
+ */
+export interface AwardedBid {
+  id: string;
+  /** Id the resulting project takes once it lands on the dashboard. */
+  projectId: string;
+  name: string;
+  client: string;
+  value: string;
+  source: string;
+  tenderRef: string;
+  /** When the government issued the award. */
+  awardedOn: string;
+  /** Letter of Intent / award reference. */
+  loiRef: string;
+  contractTerm: string;
+  start: string;
+  end: string;
+  summary: string;
+  aiSummary: string[];
+  keyFacts: { label: string; value: string }[];
+  /** AI-suggested roster, matched from the tender's manpower plan. */
+  suggestedTeam: TeamMember[];
+  /** Auto-derived from the document / AI, applied on project creation. */
+  milestones: Milestone[];
+  tasks: ProjectTask[];
+  slas: Sla[];
+  risks: Risk[];
+}

@@ -8,6 +8,8 @@ import type {
   BidForm,
   SourceRow,
   Project,
+  AwardedBid,
+  TeamMember,
 } from "../types";
 
 // The signed-in user (from Appendix B). Pre-assigned as Bid Manager.
@@ -1612,4 +1614,156 @@ export const PROJECTS: Project[] = [flagshipProject, ...mockProjects];
 export function projectById(id: string | null): Project | undefined {
   if (!id) return undefined;
   return PROJECTS.find((p) => p.id === id);
+}
+
+// ---------------------------------------------------------------------------
+// Awarded bids awaiting PM setup
+// (accepted externally by the government, routed to the PM for intake)
+// ---------------------------------------------------------------------------
+
+const gisAward: AwardedBid = {
+  id: "AWD-501",
+  projectId: "PRJ-005",
+  name: "Statewide GIS & Land Records Digitisation",
+  client: "Department of Land Records, Government of Maharashtra",
+  value: "INR 54,00,00,000",
+  source: "MahaTenders",
+  tenderRef: "DLR/GIS-LR/014/2026/112",
+  awardedOn: "18 Aug 2026",
+  loiRef: "LOI/DLR/2026/0091",
+  contractTerm: "36 months (6 implementation + 30 O&M)",
+  start: "01 Sep 2026",
+  end: "31 Aug 2029",
+  summary:
+    "Digitisation of Maharashtra land records into a unified GIS platform: survey-map integration, a citizen record-of-rights portal, and district-office rollout across the state.",
+  aiSummary: [
+    "The Department of Land Records has awarded a single System Integrator to digitise the state's cadastral maps and 7/12 records into a unified GIS platform, replacing the current district-level paper and siloed systems.",
+    "Scope covers survey-map to record-of-rights linkage, a citizen-facing record portal on MahaSamnavay SSO, mutation workflow digitisation, and rollout across all 36 district record offices over a 6-month implementation.",
+    "Performance targets carried from the tender: 99.5% portal uptime, sub-second record search, and full migration of roughly 2.6 crore record-of-rights entries, with a 30-month operations and maintenance term.",
+  ],
+  keyFacts: [
+    { label: "Tender Reference", value: "DLR/GIS-LR/014/2026/112" },
+    { label: "Awarding Authority", value: "Department of Land Records, Govt. of Maharashtra" },
+    { label: "Award Date", value: "18 Aug 2026" },
+    { label: "Letter of Intent", value: "LOI/DLR/2026/0091" },
+    { label: "Contract Value", value: "INR 54,00,00,000 (Fifty Four Crore), inclusive of GST" },
+    { label: "Contract Term", value: "36 months (6 implementation + 30 O&M)" },
+    { label: "Records to migrate", value: "~2.6 Cr record-of-rights entries" },
+    { label: "Rollout", value: "All 36 district record offices" },
+  ],
+  suggestedTeam: [
+    { personId: "arjun-kulkarni", roleId: "delivery", title: "Project Director", allocation: "60%" },
+    { personId: "kavya-iyer", roleId: "solution-architect", title: "GIS & Data Architect", allocation: "100%" },
+    { personId: "meera-joshi", roleId: "delivery", title: "Programme Manager", allocation: "100%" },
+    { personId: "priya-nair", roleId: "finance", title: "Commercial Finance", allocation: "30%" },
+    { personId: "neha-bhatt", roleId: "legal-1", title: "Contracts & Compliance", allocation: "25%" },
+  ],
+  milestones: [
+    {
+      name: "System Requirements (SRS)",
+      window: "15 working days from project start",
+      due: "22 Sep 2026",
+      status: "Upcoming",
+    },
+    {
+      name: "GIS Platform Design",
+      window: "10 working days after SRS approval",
+      due: "07 Oct 2026",
+      status: "Upcoming",
+    },
+    {
+      name: "Records Migration & Development",
+      window: "Bulk migration of 2.6 Cr entries",
+      due: "20 Jan 2027",
+      status: "Upcoming",
+    },
+    {
+      name: "District Office Rollout",
+      window: "Phased across 36 districts",
+      due: "28 Feb 2027",
+      status: "Upcoming",
+    },
+    {
+      name: "Go-live",
+      window: "10 working days after UAT sign-off",
+      due: "15 Mar 2027",
+      status: "Upcoming",
+    },
+    {
+      name: "Operations & Maintenance",
+      window: "30 months post go-live",
+      due: "Aug 2029",
+      status: "Upcoming",
+    },
+  ],
+  tasks: [
+    { id: "g1", title: "Kick-off and mobilise the delivery team", assigneeId: "arjun-kulkarni", status: "To do", due: "05 Sep 2026" },
+    { id: "g2", title: "Submit the PBG and execute the MSA", assigneeId: "priya-nair", status: "To do", due: "12 Sep 2026" },
+    { id: "g3", title: "Conduct district record-office survey", assigneeId: "meera-joshi", status: "To do", due: "18 Sep 2026" },
+    { id: "g4", title: "Draft the SRS with the Department", assigneeId: "kavya-iyer", status: "To do", due: "22 Sep 2026" },
+  ],
+  slas: [
+    { name: "Portal uptime", target: ">= 99.5% per month", current: "Baseline pending", status: "Met" },
+    { name: "Record search", target: "<= 1 s", current: "Baseline pending", status: "Met" },
+    { name: "Migration accuracy", target: ">= 99.9%", current: "Baseline pending", status: "Met" },
+  ],
+  risks: [
+    {
+      title: "Record-of-rights data quality",
+      severity: "High",
+      status: "Open",
+      owner: "Kavya Iyer",
+      note: "Legacy 7/12 records vary in format across districts; a data-cleansing and validation pass is required before migration.",
+    },
+    {
+      title: "District office readiness",
+      severity: "Medium",
+      status: "Open",
+      owner: "Meera Joshi",
+      note: "Rollout depends on connectivity and staff availability at all 36 offices; phased schedule to be confirmed with the Department.",
+    },
+  ],
+};
+
+export const AWARDED_BIDS: AwardedBid[] = [gisAward];
+
+/** Assemble a full delivery project from an award plus the PM-confirmed team. */
+export function buildProjectFromAward(
+  award: AwardedBid,
+  team: TeamMember[],
+): Project {
+  const milestones = award.milestones.map((m, i) => ({
+    ...m,
+    // The first gate starts the moment the project is created.
+    status: i === 0 ? ("In progress" as const) : m.status,
+  }));
+  return {
+    id: award.projectId,
+    name: award.name,
+    client: award.client,
+    phase: milestones[0]?.name ?? "Mobilisation",
+    start: award.start,
+    end: award.end,
+    percentComplete: 0,
+    value: award.value,
+    pm: personById(CURRENT_PM_ID)?.name ?? "Arjun Kulkarni",
+    health: "On track",
+    detailed: true,
+    contractTerm: award.contractTerm,
+    summary: award.summary,
+    milestones,
+    tasks: award.tasks.map((t) => ({ ...t })),
+    team,
+    slas: award.slas.map((s) => ({ ...s })),
+    risks: award.risks.map((r) => ({ ...r })),
+  };
+}
+
+/** Live progress: derived from milestones when present, else the stored value. */
+export function progressOf(p: Project): number {
+  if (p.milestones && p.milestones.length > 0) {
+    const done = p.milestones.filter((m) => m.status === "Completed").length;
+    return Math.round((done / p.milestones.length) * 100);
+  }
+  return p.percentComplete;
 }

@@ -1,21 +1,27 @@
 import { useEffect, useState } from "react";
-import { PROJECTS, projectById } from "./data/seed";
+import type { AwardedBid, Project } from "./types";
+import { PROJECTS, AWARDED_BIDS } from "./data/seed";
 import { TopBar } from "./components/TopBar";
 import type { WorkspaceTab } from "./components/TopBar";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { ProjectScreen } from "./screens/ProjectScreen";
+import { IntakeScreen } from "./screens/IntakeScreen";
 
-type Screen = "home" | "projects" | "project";
+type Screen = "home" | "projects" | "project" | "intake";
 
 const WORKSPACE: Screen[] = ["home", "projects"];
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
+  const [projects, setProjects] = useState<Project[]>(PROJECTS);
+  const [awardedBids, setAwardedBids] = useState<AwardedBid[]>(AWARDED_BIDS);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [activeAwardId, setActiveAwardId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const activeProject = projectById(activeProjectId);
+  const activeProject = projects.find((p) => p.id === activeProjectId);
+  const activeAward = awardedBids.find((a) => a.id === activeAwardId);
   const isWorkspace = WORKSPACE.includes(screen);
 
   useEffect(() => {
@@ -24,12 +30,25 @@ export default function App() {
     return () => window.clearTimeout(t);
   }, [toast]);
 
+  function updateProject(next: Project) {
+    setProjects((prev) => prev.map((p) => (p.id === next.id ? next : p)));
+  }
+
   const tabs: WorkspaceTab[] = [
-    { id: "projects", label: "Projects", count: PROJECTS.length },
+    { id: "projects", label: "Projects", count: projects.length },
   ];
 
+  function createFromAward(project: Project) {
+    setProjects((prev) => [project, ...prev]);
+    setAwardedBids((prev) => prev.filter((a) => a.id !== activeAwardId));
+    setActiveAwardId(null);
+    setActiveProjectId(project.id);
+    setScreen("projects");
+    setToast(`${project.id} created and added to your portfolio`);
+  }
+
   const backConfig =
-    screen === "project"
+    screen === "project" || screen === "intake"
       ? { onBack: () => setScreen("projects"), backLabel: "Projects" }
       : {};
 
@@ -45,9 +64,15 @@ export default function App() {
 
       {screen === "projects" && (
         <ProjectsScreen
+          projects={projects}
+          awardedBids={awardedBids}
           onOpen={(id) => {
             setActiveProjectId(id);
             setScreen("project");
+          }}
+          onIntake={(id) => {
+            setActiveAwardId(id);
+            setScreen("intake");
           }}
           onLocked={() =>
             setToast(
@@ -58,7 +83,23 @@ export default function App() {
       )}
 
       {screen === "project" && activeProject && (
-        <ProjectScreen project={activeProject} />
+        <ProjectScreen
+          project={activeProject}
+          onUpdate={updateProject}
+          onToast={setToast}
+        />
+      )}
+
+      {screen === "intake" && activeAward && (
+        <IntakeScreen
+          award={activeAward}
+          onCreate={createFromAward}
+          onDecline={() => {
+            setActiveAwardId(null);
+            setScreen("projects");
+            setToast("Award declined");
+          }}
+        />
       )}
 
       {toast && (
