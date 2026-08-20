@@ -146,7 +146,7 @@ function Overview({ project }: { project: Project }) {
 
   function openRfp() {
     setViewer({
-      url: rfp.documentUrl,
+      url: rfp.documentUrl ?? "/RTS2-RFP-AapleSarkar-2.0.pdf",
       title: rfp.documentName ?? "RFP document",
       subtitle: `${rfp.title} · Original tender`,
       isBlob: false,
