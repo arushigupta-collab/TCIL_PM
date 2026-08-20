@@ -215,6 +215,34 @@ export interface TeamMember {
   allocation: string;
 }
 
+export type VendorStatus = "Active" | "Onboarding" | "Completed";
+export type VendorDocType = "work-order" | "agreement" | "compliance" | "invoices";
+
+export interface VendorContact {
+  name: string;
+  title: string;
+  email: string;
+  phone: string;
+}
+
+/** A subcontractor / supplier the project work is awarded to. */
+export interface Vendor {
+  id: string;
+  name: string;
+  /** e.g. "Cloud Service Provider", "Security Audit (VAPT)". */
+  category: string;
+  scope: string;
+  /** Purchase / work order reference. */
+  poRef: string;
+  contractValue: string;
+  status: VendorStatus;
+  gstin: string;
+  location: string;
+  since: string;
+  certifications: string[];
+  contact: VendorContact;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -235,6 +263,7 @@ export interface Project {
   team?: TeamMember[];
   slas?: Sla[];
   risks?: Risk[];
+  vendors?: Vendor[];
 }
 
 /**
@@ -268,4 +297,5 @@ export interface AwardedBid {
   tasks: ProjectTask[];
   slas: Sla[];
   risks: Risk[];
+  vendors: Vendor[];
 }

@@ -1565,6 +1565,88 @@ const flagshipProject: Project = {
       note: "A 10% attrition rate triggers a penalty; a backfill bench has been identified for named roles.",
     },
   ],
+  vendors: [
+    {
+      id: "v-orbitcloud",
+      name: "OrbitCloud India Pvt Ltd",
+      category: "Cloud Service Provider",
+      scope:
+        "Hosting, DC-DR, autoscaling and managed cloud for the citizen, department and CRTS portals, priced as the cloud services bouquet.",
+      poRef: "WO/RTS2.0/CSP/001",
+      contractValue: "INR 42,60,00,000",
+      status: "Active",
+      gstin: "27AABCO7789K1Z4",
+      location: "Pune, Maharashtra",
+      since: "10 Oct 2025",
+      certifications: ["ISO 27001", "ISO 20000", "MeitY empanelled CSP"],
+      contact: {
+        name: "Sameer Khanna",
+        title: "Enterprise Account Director",
+        email: "sameer.k@orbitcloud.example",
+        phone: "+91 20 4455 1200",
+      },
+    },
+    {
+      id: "v-vaaniai",
+      name: "VaaniAI Technologies",
+      category: "Chatbot, IVR & Language",
+      scope:
+        "Marathi-language IVR on the Bhashini NLU stack, the AI chatbot and the multilingual knowledge base shared across channels.",
+      poRef: "WO/RTS2.0/AI/004",
+      contractValue: "INR 6,50,00,000",
+      status: "Onboarding",
+      gstin: "29AAECV1123M1ZS",
+      location: "Bengaluru, Karnataka",
+      since: "05 Jan 2026",
+      certifications: ["ISO 9001", "SOC 2 Type II"],
+      contact: {
+        name: "Ananya Deshpande",
+        title: "Delivery Head",
+        email: "ananya.d@vaaniai.example",
+        phone: "+91 80 6677 4400",
+      },
+    },
+    {
+      id: "v-securelayer",
+      name: "SecureLayer Labs",
+      category: "Security Audit (VAPT)",
+      scope:
+        "Vulnerability assessment and penetration testing from a CERT-In empanelled agency, and the pre-go-live security clearance.",
+      poRef: "WO/RTS2.0/SEC/006",
+      contractValue: "INR 1,40,00,000",
+      status: "Active",
+      gstin: "27AAFCS9987P1Z9",
+      location: "Mumbai, Maharashtra",
+      since: "18 Nov 2025",
+      certifications: ["CERT-In empanelled", "ISO 27001", "CREST"],
+      contact: {
+        name: "Farhan Qureshi",
+        title: "Principal Consultant",
+        email: "farhan.q@securelayer.example",
+        phone: "+91 22 6789 3300",
+      },
+    },
+    {
+      id: "v-gramsetu",
+      name: "GramSetu Services",
+      category: "VLE Doorstep Delivery",
+      scope:
+        "Doorstep delivery of citizen services through the Village Level Entrepreneur network, and last-mile assisted access.",
+      poRef: "WO/RTS2.0/VLE/009",
+      contractValue: "INR 4,80,00,000",
+      status: "Onboarding",
+      gstin: "27AADCG4456R1ZB",
+      location: "Nagpur, Maharashtra",
+      since: "20 Jan 2026",
+      certifications: ["ISO 9001", "MSME registered"],
+      contact: {
+        name: "Kishore Patil",
+        title: "Network Operations Lead",
+        email: "kishore.p@gramsetu.example",
+        phone: "+91 712 244 8800",
+      },
+    },
+  ],
 };
 
 const mockProjects: Project[] = [
@@ -1723,6 +1805,48 @@ const gisAward: AwardedBid = {
       note: "Rollout depends on connectivity and staff availability at all 36 offices; phased schedule to be confirmed with the Department.",
     },
   ],
+  vendors: [
+    {
+      id: "v-cartageo",
+      name: "CartaGeo Survey Pvt Ltd",
+      category: "GIS & Survey Data",
+      scope:
+        "Cadastral map georeferencing, drone and satellite imagery, and survey-map to record-of-rights linkage across districts.",
+      poRef: "WO/GIS-LR/SUR/001",
+      contractValue: "INR 8,20,00,000",
+      status: "Onboarding",
+      gstin: "27AAGCC5567H1Z2",
+      location: "Pune, Maharashtra",
+      since: "01 Sep 2026",
+      certifications: ["ISO 9001", "Survey of India licensed"],
+      contact: {
+        name: "Rewa Kulkarni",
+        title: "Geospatial Programme Lead",
+        email: "rewa.k@cartageo.example",
+        phone: "+91 20 6612 7700",
+      },
+    },
+    {
+      id: "v-docuscan",
+      name: "DocuScan Bureau",
+      category: "Scanning & Digitisation",
+      scope:
+        "High-volume scanning, OCR and indexing of legacy 7/12 land records at district record offices.",
+      poRef: "WO/GIS-LR/DIG/003",
+      contractValue: "INR 5,60,00,000",
+      status: "Onboarding",
+      gstin: "27AAECD2231L1ZK",
+      location: "Aurangabad, Maharashtra",
+      since: "08 Sep 2026",
+      certifications: ["ISO 27001", "MSME registered"],
+      contact: {
+        name: "Imran Shaikh",
+        title: "Operations Manager",
+        email: "imran.s@docuscan.example",
+        phone: "+91 240 662 5500",
+      },
+    },
+  ],
 };
 
 export const AWARDED_BIDS: AwardedBid[] = [gisAward];
@@ -1756,6 +1880,7 @@ export function buildProjectFromAward(
     team,
     slas: award.slas.map((s) => ({ ...s })),
     risks: award.risks.map((r) => ({ ...r })),
+    vendors: award.vendors.map((v) => ({ ...v })),
   };
 }
 

@@ -201,6 +201,14 @@ export const Landmark = (p: IconProps) => (
   </Base>
 );
 
+export const Building = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="4" y="3" width="11" height="18" rx="1.5" />
+    <path d="M15 8h4a1 1 0 011 1v11a1 1 0 01-1 1h-4" />
+    <path d="M8 7h3M8 11h3M8 15h3" />
+  </Base>
+);
+
 export const Route = (p: IconProps) => (
   <Base {...p}>
     <circle cx="6.5" cy="18.5" r="2.5" />

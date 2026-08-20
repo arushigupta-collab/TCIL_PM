@@ -7,34 +7,54 @@ import type {
   RiskStatus,
   TaskStatus,
   ProjectTask,
+  Vendor,
+  VendorStatus,
+  VendorDocType,
 } from "../types";
 import { personById, ROLES, progressOf, CURRENT_PM_ID, RFPS } from "../data/seed";
 import { Avatar } from "../components/ui";
 import { PdfViewerModal } from "../components/PdfViewerModal";
-import { buildSubmittedHtml } from "../lib/exportDoc";
+import {
+  buildSubmittedHtml,
+  buildContractHtml,
+  buildAddendumHtml,
+  buildChangeDocHtml,
+  buildInvoicesHtml,
+  buildVendorDocHtml,
+  VENDOR_DOC_TITLE,
+} from "../lib/exportDoc";
 import {
   Target,
   Calendar,
   ListChecks,
   Users,
   ShieldCheck,
+  Building,
   Check,
   ChevronLeft,
   ChevronRight,
   Plus,
   FileText,
   ExternalLink,
+  X,
 } from "../lib/icons";
 
-type Sub = "overview" | "timeline" | "tasks" | "team" | "risks";
+type Sub = "overview" | "timeline" | "tasks" | "team" | "vendors" | "risks";
 
 const SUBS: { id: Sub; label: string; icon: typeof Target }[] = [
   { id: "overview", label: "Overview", icon: Target },
   { id: "timeline", label: "Timeline", icon: Calendar },
   { id: "tasks", label: "Tasks", icon: ListChecks },
   { id: "team", label: "Team", icon: Users },
+  { id: "vendors", label: "Vendors", icon: Building },
   { id: "risks", label: "SLAs & Risks", icon: ShieldCheck },
 ];
+
+const VENDOR_TONE: Record<VendorStatus, "strong" | "mid" | "weak"> = {
+  Active: "strong",
+  Onboarding: "mid",
+  Completed: "weak",
+};
 
 const TASK_ORDER: TaskStatus[] = ["To do", "In progress", "Done"];
 const RISK_CYCLE: RiskStatus[] = ["Open", "Mitigating", "Closed"];
@@ -153,14 +173,9 @@ function Overview({ project }: { project: Project }) {
     });
   }
 
-  function openSubmitted() {
-    const blob = new Blob([buildSubmittedHtml()], { type: "text/html" });
-    setViewer({
-      url: URL.createObjectURL(blob),
-      title: "Submitted bid response",
-      subtitle: `${project.name} · Awarded proposal`,
-      isBlob: true,
-    });
+  function openHtml(title: string, subtitle: string, html: string) {
+    const blob = new Blob([html], { type: "text/html" });
+    setViewer({ url: URL.createObjectURL(blob), title, subtitle, isBlob: true });
   }
 
   function closeViewer() {
@@ -204,25 +219,88 @@ function Overview({ project }: { project: Project }) {
             {project.summary}
           </p>
           {project.id === "PRJ-001" ? (
-            <div className="mt-4 border-t border-stone-100 pt-4">
-              <h4 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
-                Bid documents
-              </h4>
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                <DocButton
-                  badge="PDF"
-                  label="View RFP document"
-                  sub="Original tender from the authority"
-                  onClick={openRfp}
-                />
-                <DocButton
-                  badge="DOC"
-                  label="View submitted response"
-                  sub="The proposal that won this project"
-                  onClick={openSubmitted}
-                />
+            <>
+              <div className="mt-4 border-t border-stone-100 pt-4">
+                <h4 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+                  Bid documents
+                </h4>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  <DocButton
+                    badge="PDF"
+                    label="View RFP document"
+                    sub="Original tender from the authority"
+                    onClick={openRfp}
+                  />
+                  <DocButton
+                    badge="DOC"
+                    label="View submitted response"
+                    sub="The proposal that won this project"
+                    onClick={() =>
+                      openHtml(
+                        "Submitted bid response",
+                        `${project.name} · Awarded proposal`,
+                        buildSubmittedHtml(),
+                      )
+                    }
+                  />
+                </div>
               </div>
-            </div>
+              <div className="mt-4 border-t border-stone-100 pt-4">
+                <h4 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+                  Contract & delivery
+                </h4>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  <DocButton
+                    badge="DOC"
+                    label="View Contract"
+                    sub="Master Services Agreement"
+                    onClick={() =>
+                      openHtml(
+                        "Contract",
+                        "Master Services Agreement",
+                        buildContractHtml(),
+                      )
+                    }
+                  />
+                  <DocButton
+                    badge="DOC"
+                    label="View Addendum"
+                    sub="Amendments to the contract"
+                    onClick={() =>
+                      openHtml(
+                        "Addendum",
+                        "Addendum No. 1 to the MSA",
+                        buildAddendumHtml(),
+                      )
+                    }
+                  />
+                  <DocButton
+                    badge="DOC"
+                    label="View Change Document"
+                    sub="Change control note"
+                    onClick={() =>
+                      openHtml(
+                        "Change Document",
+                        "Change Control Note CCN-002",
+                        buildChangeDocHtml(),
+                      )
+                    }
+                  />
+                  <DocButton
+                    badge="XLS"
+                    label="View Invoices"
+                    sub="Invoice statement & account"
+                    onClick={() =>
+                      openHtml(
+                        "Invoices",
+                        "Invoice statement",
+                        buildInvoicesHtml(),
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            </>
           ) : null}
         </div>
       ) : null}
@@ -528,6 +606,218 @@ function SlasAndRisks({ project, onUpdate, onToast }: SubProps) {
   );
 }
 
+// ---- Vendors (subcontractors / suppliers) ----
+const VENDOR_DOC_TYPES: VendorDocType[] = [
+  "work-order",
+  "agreement",
+  "compliance",
+  "invoices",
+];
+const VENDOR_DOC_SUB: Record<VendorDocType, string> = {
+  "work-order": "Authorised scope & commercials",
+  agreement: "Back-to-back subcontract terms",
+  compliance: "Statutory & certification status",
+  invoices: "Billing against the work order",
+};
+
+function VendorModal({
+  vendor,
+  onClose,
+}: {
+  vendor: Vendor;
+  onClose: () => void;
+}) {
+  const [docViewer, setDocViewer] = useState<DocViewer | null>(null);
+
+  function openDoc(type: VendorDocType) {
+    const blob = new Blob([buildVendorDocHtml(vendor, type)], {
+      type: "text/html",
+    });
+    setDocViewer({
+      url: URL.createObjectURL(blob),
+      title: `${vendor.name} · ${VENDOR_DOC_TITLE[type]}`,
+      subtitle: vendor.category,
+      isBlob: true,
+    });
+  }
+  function closeDoc() {
+    if (docViewer?.isBlob) URL.revokeObjectURL(docViewer.url);
+    setDocViewer(null);
+  }
+
+  const facts: [string, string][] = [
+    ["Purchase / work order", vendor.poRef],
+    ["Order value", vendor.contractValue],
+    ["GSTIN", vendor.gstin],
+    ["Location", vendor.location],
+    ["Engaged since", vendor.since],
+    ["Status", vendor.status],
+  ];
+
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end">
+      <div className="animate-fade absolute inset-0 bg-ink/40" onClick={onClose} aria-hidden />
+      <div className="animate-drawer relative flex h-full w-full max-w-md flex-col overflow-y-auto scroll-slim bg-canvas shadow-2xl">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy/5 text-navy">
+              <Building width={20} height={20} />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold leading-snug text-ink">
+                {vendor.name}
+              </h2>
+              <p className="text-xs text-stone-500">{vendor.category}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-stone-400 transition hover:bg-stone-100 hover:text-ink"
+            aria-label="Close"
+          >
+            <X width={18} height={18} />
+          </button>
+        </div>
+
+        <div className="space-y-5 p-5">
+          <div>
+            <NeutralPill label={vendor.status} tone={VENDOR_TONE[vendor.status]} />
+          </div>
+
+          <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+              Scope
+            </h3>
+            <p className="text-[13px] leading-relaxed text-stone-700">
+              {vendor.scope}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+              Vendor details
+            </h3>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {facts.map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[11px] text-stone-400">{label}</dt>
+                  <dd className="text-[13px] font-medium text-ink">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-3 border-t border-stone-100 pt-3">
+              <dt className="text-[11px] text-stone-400">Certifications</dt>
+              <dd className="mt-1 flex flex-wrap gap-1.5">
+                {vendor.certifications.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-md bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600 ring-1 ring-inset ring-stone-200"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+              Contact
+            </h3>
+            <p className="text-sm font-semibold text-ink">{vendor.contact.name}</p>
+            <p className="text-xs text-stone-500">{vendor.contact.title}</p>
+            <p className="mt-1 text-[13px] text-navy">{vendor.contact.email}</p>
+            <p className="text-[13px] text-stone-600">{vendor.contact.phone}</p>
+          </div>
+
+          <div>
+            <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+              Vendor documents
+            </h3>
+            <div className="grid gap-2.5">
+              {VENDOR_DOC_TYPES.map((type) => (
+                <DocButton
+                  key={type}
+                  badge={type === "invoices" ? "XLS" : "DOC"}
+                  label={VENDOR_DOC_TITLE[type]}
+                  sub={VENDOR_DOC_SUB[type]}
+                  onClick={() => openDoc(type)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {docViewer ? (
+        <PdfViewerModal
+          url={docViewer.url}
+          title={docViewer.title}
+          subtitle={docViewer.subtitle}
+          onClose={closeDoc}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function Vendors({ project }: { project: Project }) {
+  const [active, setActive] = useState<Vendor | null>(null);
+  const vendors = project.vendors ?? [];
+
+  if (vendors.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-stone-300 bg-white p-10 text-center text-sm text-stone-400">
+        No vendors engaged on this project yet.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <p className="mb-3 text-xs text-stone-500">
+        Subcontractors and suppliers this project's work is awarded to. Select a
+        vendor to view their details and documents.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {vendors.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setActive(v)}
+            className="group flex flex-col rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-navy/40 hover:shadow"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy/5 text-navy">
+                <Building width={18} height={18} />
+              </span>
+              <NeutralPill label={v.status} tone={VENDOR_TONE[v.status]} />
+            </div>
+            <p className="mt-3 text-sm font-bold text-ink">{v.name}</p>
+            <p className="text-xs font-medium text-stone-500">{v.category}</p>
+            <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-stone-600">
+              {v.scope}
+            </p>
+            <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-3">
+              <span className="text-xs font-semibold text-ink">
+                {v.contractValue}
+              </span>
+              <span className="flex items-center gap-1 text-xs font-semibold text-navy group-hover:underline">
+                View details
+                <ExternalLink width={13} height={13} />
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {active ? (
+        <VendorModal vendor={active} onClose={() => setActive(null)} />
+      ) : null}
+    </>
+  );
+}
+
 export function ProjectScreen({
   project,
   onUpdate,
@@ -591,6 +881,7 @@ export function ProjectScreen({
         <Tasks project={project} onUpdate={onUpdate} onToast={onToast} />
       )}
       {sub === "team" && <Team project={project} />}
+      {sub === "vendors" && <Vendors project={project} />}
       {sub === "risks" && (
         <SlasAndRisks project={project} onUpdate={onUpdate} onToast={onToast} />
       )}
