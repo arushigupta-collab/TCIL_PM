@@ -1,4 +1,5 @@
 import type { Vendor, VendorDocType } from "../types";
+import { formatINR } from "./format";
 import {
   RFPS,
   SECTIONS,
@@ -426,37 +427,46 @@ export function buildVendorDocHtml(vendor: Vendor, type: VendorDocType): string 
     });
   }
 
-  // invoices
-  const onboarding = vendor.status === "Onboarding";
-  const rows = onboarding
-    ? [["—", "—", "No invoices raised yet; vendor is onboarding", "—", "—"]]
-    : [
-        [`${vendor.poRef.split("/").pop()}-I1`, vendor.since, "Mobilisation / first deliverable", "Paid", "20% of order value"],
-        [`${vendor.poRef.split("/").pop()}-I2`, "Quarterly", "Recurring service charge (Q1)", "Paid", "Quarterly"],
-        [`${vendor.poRef.split("/").pop()}-I3`, "Quarterly", "Recurring service charge (Q2)", "Submitted", "Quarterly"],
-      ];
-  const bodyRows = rows
+  // invoices — rendered from the finance schedule so the document matches the drawer
+  const schedule = vendor.finance.schedule;
+  const paid = schedule
+    .filter((p) => p.status === "Paid")
+    .reduce((s, p) => s + p.amountValue, 0);
+  const invoiced = schedule
+    .filter((p) => p.status !== "Scheduled")
+    .reduce((s, p) => s + p.amountValue, 0);
+  const outstanding = invoiced - paid;
+  const anyInvoiced = invoiced > 0;
+
+  const bodyRows = schedule
     .map(
-      (r) =>
-        `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td></tr>`,
+      (p, i) =>
+        `<tr><td>${esc(`${vendor.poRef.split("/").pop()}-${i + 1}`)}</td><td>${esc(p.label)}</td><td>${esc(p.due)}</td><td class="num">${esc(formatINR(p.amountValue))}</td><td>${esc(p.status)}</td></tr>`,
     )
     .join("");
+
   const body = `
-    <p>Invoices raised by ${esc(vendor.name)} against ${esc(vendor.poRef)}. Order value ${esc(vendor.contractValue)} (inclusive of GST).</p>
+    <p>Invoices raised by ${esc(vendor.name)} against ${esc(vendor.poRef)}. Order value ${esc(vendor.contractValue)} (inclusive of GST). Amounts in INR; GST as applicable.</p>
     <table class="data">
-      <tr><th>Invoice No.</th><th>Date</th><th>Against</th><th>Status</th><th>Basis</th></tr>
+      <tr><th>Invoice No.</th><th>Against</th><th>Due</th><th>Amount</th><th>Status</th></tr>
       ${bodyRows}
     </table>
+    <h2>Account Summary</h2>
+    <table class="cover-facts">
+      <tr><th>Invoiced to date</th><td>${esc(formatINR(invoiced))}</td></tr>
+      <tr><th>Paid to date</th><td>${esc(formatINR(paid))}</td></tr>
+      <tr><th>Outstanding</th><td>${esc(formatINR(outstanding))}</td></tr>
+    </table>
     ${
-      onboarding
-        ? `<p class="meta">Billing begins once the vendor's first deliverable is accepted.</p>`
-        : ""
+      anyInvoiced
+        ? ""
+        : `<p class="meta">Billing begins once the vendor's first deliverable is accepted.</p>`
     }`;
   return docPage({
     eyebrow: "EMB GLOBAL · Vendor Invoices",
     h1: "Vendor Invoices",
     ref: vendor.poRef.replace("WO/", "AR/"),
-    status: onboarding ? "No invoices yet" : "Active",
+    status: anyInvoiced ? "Active" : "No invoices yet",
     facts: commonFacts,
     body,
     foot: "Vendor invoice statement · confidential",

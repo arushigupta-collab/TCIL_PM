@@ -225,6 +225,41 @@ export interface VendorContact {
   phone: string;
 }
 
+export type PaymentStatus = "Scheduled" | "Due" | "Paid" | "On hold";
+
+export interface VendorPayment {
+  id: string;
+  label: string; // "Advance (10%)", "Q1 managed service", ...
+  amountValue: number; // INR, numeric — source of truth for the summary
+  due: string; // "On mobilisation" or a date
+  status: PaymentStatus;
+}
+
+export interface VendorFinance {
+  advancePercent: string; // "10%"
+  retentionPercent: string; // "5%" (retention accrues on paid amounts)
+  schedule: VendorPayment[];
+}
+
+export type SecurityKind = "EMD" | "PBG";
+export type SecurityStatus = "Submitted" | "Active" | "Released" | "Expired";
+
+/** A financial-security instrument (EMD / PBG) used in public procurement. */
+export interface FinancialSecurity {
+  id: string;
+  kind: SecurityKind;
+  fullName: string; // "Earnest Money Deposit"
+  instrument: string; // "Bank Guarantee"
+  amount: string; // "INR 1,00,00,000"
+  basis: string; // "Fixed EMD (per tender)" | "10% of contract value"
+  issuingBank: string;
+  refNo: string;
+  submittedOn: string;
+  validTill: string;
+  status: SecurityStatus;
+  note: string; // one-line, what this instrument secures
+}
+
 /** A subcontractor / supplier the project work is awarded to. */
 export interface Vendor {
   id: string;
@@ -241,6 +276,7 @@ export interface Vendor {
   since: string;
   certifications: string[];
   contact: VendorContact;
+  finance: VendorFinance;
 }
 
 export interface Project {
@@ -264,6 +300,7 @@ export interface Project {
   slas?: Sla[];
   risks?: Risk[];
   vendors?: Vendor[];
+  securities?: FinancialSecurity[];
 }
 
 /**
@@ -298,4 +335,5 @@ export interface AwardedBid {
   slas: Sla[];
   risks: Risk[];
   vendors: Vendor[];
+  securities: FinancialSecurity[];
 }

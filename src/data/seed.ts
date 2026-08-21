@@ -1585,6 +1585,16 @@ const flagshipProject: Project = {
         email: "sameer.k@orbitcloud.example",
         phone: "+91 20 4455 1200",
       },
+      finance: {
+        advancePercent: "10%",
+        retentionPercent: "5%",
+        schedule: [
+          { id: "csp-adv", label: "Advance (10%)", amountValue: 42600000, due: "On mobilisation · 10 Oct 2025", status: "Paid" },
+          { id: "csp-dcdr", label: "DC-DR go-live milestone", amountValue: 85200000, due: "30 Nov 2025", status: "Paid" },
+          { id: "csp-q1", label: "Q1 managed service", amountValue: 85200000, due: "31 Mar 2026", status: "Due" },
+          { id: "csp-q2", label: "Q2 managed service", amountValue: 85200000, due: "30 Jun 2026", status: "Scheduled" },
+        ],
+      },
     },
     {
       id: "v-vaaniai",
@@ -1604,6 +1614,15 @@ const flagshipProject: Project = {
         title: "Delivery Head",
         email: "ananya.d@vaaniai.example",
         phone: "+91 80 6677 4400",
+      },
+      finance: {
+        advancePercent: "15%",
+        retentionPercent: "5%",
+        schedule: [
+          { id: "ai-adv", label: "Advance (15%)", amountValue: 9750000, due: "On mobilisation", status: "Scheduled" },
+          { id: "ai-golive", label: "IVR & chatbot go-live", amountValue: 27625000, due: "On acceptance", status: "Scheduled" },
+          { id: "ai-final", label: "Final acceptance", amountValue: 27625000, due: "On sign-off", status: "Scheduled" },
+        ],
       },
     },
     {
@@ -1625,6 +1644,15 @@ const flagshipProject: Project = {
         email: "farhan.q@securelayer.example",
         phone: "+91 22 6789 3300",
       },
+      finance: {
+        advancePercent: "20%",
+        retentionPercent: "5%",
+        schedule: [
+          { id: "sec-adv", label: "Advance (20%)", amountValue: 2800000, due: "On mobilisation · 18 Nov 2025", status: "Paid" },
+          { id: "sec-r1", label: "VAPT round 1 report", amountValue: 5600000, due: "20 Dec 2025", status: "Paid" },
+          { id: "sec-clear", label: "Pre-go-live clearance", amountValue: 5600000, due: "28 Feb 2026", status: "Due" },
+        ],
+      },
     },
     {
       id: "v-gramsetu",
@@ -1645,6 +1673,45 @@ const flagshipProject: Project = {
         email: "kishore.p@gramsetu.example",
         phone: "+91 712 244 8800",
       },
+      finance: {
+        advancePercent: "10%",
+        retentionPercent: "5%",
+        schedule: [
+          { id: "vle-adv", label: "Advance (10%)", amountValue: 4800000, due: "On mobilisation", status: "Due" },
+          { id: "vle-b1", label: "District rollout batch 1", amountValue: 21600000, due: "On go-live", status: "Scheduled" },
+          { id: "vle-b2", label: "District rollout batch 2", amountValue: 21600000, due: "Post go-live", status: "Scheduled" },
+        ],
+      },
+    },
+  ],
+  securities: [
+    {
+      id: "sec-emd-001",
+      kind: "EMD",
+      fullName: "Earnest Money Deposit",
+      instrument: "Bank Guarantee",
+      amount: "INR 1,00,00,000",
+      basis: "Fixed EMD (per tender)",
+      issuingBank: "HDFC Bank, Mumbai",
+      refNo: "BG/EMD/2025/0456",
+      submittedOn: "20 Aug 2025",
+      validTill: "24 Feb 2026",
+      status: "Released",
+      note: "Furnished with the bid to guarantee a genuine offer; refunded to the successful bidder once the PBG is in place.",
+    },
+    {
+      id: "sec-pbg-001",
+      kind: "PBG",
+      fullName: "Performance Bank Guarantee",
+      instrument: "Bank Guarantee",
+      amount: "INR 43,82,00,000",
+      basis: "10% of contract value",
+      issuingBank: "HDFC Bank, Mumbai",
+      refNo: "BG/PBG/2025/0912",
+      submittedOn: "10 Oct 2025",
+      validTill: "27 Dec 2029",
+      status: "Active",
+      note: "Furnished within 30 days of the LOI to secure contract performance; valid 180 days beyond the O&M period.",
     },
   ],
 };
@@ -1825,6 +1892,15 @@ const gisAward: AwardedBid = {
         email: "rewa.k@cartageo.example",
         phone: "+91 20 6612 7700",
       },
+      finance: {
+        advancePercent: "15%",
+        retentionPercent: "5%",
+        schedule: [
+          { id: "sur-adv", label: "Advance (15%)", amountValue: 12300000, due: "On mobilisation", status: "Scheduled" },
+          { id: "sur-img", label: "Imagery acquisition", amountValue: 34850000, due: "On delivery", status: "Scheduled" },
+          { id: "sur-link", label: "Survey-record linkage", amountValue: 34850000, due: "On acceptance", status: "Scheduled" },
+        ],
+      },
     },
     {
       id: "v-docuscan",
@@ -1845,6 +1921,45 @@ const gisAward: AwardedBid = {
         email: "imran.s@docuscan.example",
         phone: "+91 240 662 5500",
       },
+      finance: {
+        advancePercent: "10%",
+        retentionPercent: "5%",
+        schedule: [
+          { id: "dig-adv", label: "Advance (10%)", amountValue: 5600000, due: "On mobilisation", status: "Scheduled" },
+          { id: "dig-b1", label: "Batch 1 scanning", amountValue: 25200000, due: "On delivery", status: "Scheduled" },
+          { id: "dig-b2", label: "Batch 2 scanning", amountValue: 25200000, due: "On delivery", status: "Scheduled" },
+        ],
+      },
+    },
+  ],
+  securities: [
+    {
+      id: "sec-emd-501",
+      kind: "EMD",
+      fullName: "Earnest Money Deposit",
+      instrument: "Bank Guarantee",
+      amount: "INR 54,00,000",
+      basis: "Fixed EMD (per tender)",
+      issuingBank: "ICICI Bank, Pune",
+      refNo: "BG/EMD/2026/0231",
+      submittedOn: "10 Aug 2026",
+      validTill: "06 Feb 2027",
+      status: "Active",
+      note: "Furnished with the bid to guarantee a genuine offer; released once the PBG is furnished.",
+    },
+    {
+      id: "sec-pbg-501",
+      kind: "PBG",
+      fullName: "Performance Bank Guarantee",
+      instrument: "Bank Guarantee",
+      amount: "INR 5,40,00,000",
+      basis: "10% of contract value",
+      issuingBank: "ICICI Bank, Pune",
+      refNo: "BG/PBG/2026/0455",
+      submittedOn: "To be furnished",
+      validTill: "Feb 2030",
+      status: "Submitted",
+      note: "To be furnished within 30 days of the LOI to secure contract performance.",
     },
   ],
 };
@@ -1881,6 +1996,7 @@ export function buildProjectFromAward(
     slas: award.slas.map((s) => ({ ...s })),
     risks: award.risks.map((r) => ({ ...r })),
     vendors: award.vendors.map((v) => ({ ...v })),
+    securities: award.securities.map((s) => ({ ...s })),
   };
 }
 

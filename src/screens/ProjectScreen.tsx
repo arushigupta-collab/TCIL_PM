@@ -10,8 +10,13 @@ import type {
   Vendor,
   VendorStatus,
   VendorDocType,
+  VendorFinance,
+  PaymentStatus,
+  FinancialSecurity,
+  SecurityStatus,
 } from "../types";
 import { personById, ROLES, progressOf, CURRENT_PM_ID, RFPS } from "../data/seed";
+import { formatINR } from "../lib/format";
 import { Avatar } from "../components/ui";
 import { PdfViewerModal } from "../components/PdfViewerModal";
 import {
@@ -30,6 +35,7 @@ import {
   Users,
   ShieldCheck,
   Building,
+  Lock,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -39,7 +45,14 @@ import {
   X,
 } from "../lib/icons";
 
-type Sub = "overview" | "timeline" | "tasks" | "team" | "vendors" | "risks";
+type Sub =
+  | "overview"
+  | "timeline"
+  | "tasks"
+  | "team"
+  | "vendors"
+  | "securities"
+  | "risks";
 
 const SUBS: { id: Sub; label: string; icon: typeof Target }[] = [
   { id: "overview", label: "Overview", icon: Target },
@@ -47,6 +60,7 @@ const SUBS: { id: Sub; label: string; icon: typeof Target }[] = [
   { id: "tasks", label: "Tasks", icon: ListChecks },
   { id: "team", label: "Team", icon: Users },
   { id: "vendors", label: "Vendors", icon: Building },
+  { id: "securities", label: "Securities", icon: Lock },
   { id: "risks", label: "SLAs & Risks", icon: ShieldCheck },
 ];
 
@@ -55,6 +69,41 @@ const VENDOR_TONE: Record<VendorStatus, "strong" | "mid" | "weak"> = {
   Onboarding: "mid",
   Completed: "weak",
 };
+
+const PAYMENT_TONE: Record<PaymentStatus, "strong" | "mid" | "weak"> = {
+  Paid: "strong",
+  Due: "mid",
+  Scheduled: "weak",
+  "On hold": "weak",
+};
+
+const PAYMENT_CYCLE: PaymentStatus[] = ["Scheduled", "Due", "Paid"];
+
+const SECURITY_TONE: Record<SecurityStatus, "strong" | "mid" | "weak"> = {
+  Active: "strong",
+  Submitted: "mid",
+  Released: "weak",
+  Expired: "weak",
+};
+
+const SECURITY_CYCLE: SecurityStatus[] = ["Submitted", "Active", "Released"];
+
+/** Summary figures derived from the payment schedule (the source of truth). */
+function financeSummary(f: VendorFinance) {
+  const paidToDate = f.schedule
+    .filter((p) => p.status === "Paid")
+    .reduce((s, p) => s + p.amountValue, 0);
+  const invoicedToDate = f.schedule
+    .filter((p) => p.status !== "Scheduled")
+    .reduce((s, p) => s + p.amountValue, 0);
+  const outstanding = invoicedToDate - paidToDate;
+  const nextPayment = f.schedule.find((p) => p.status !== "Paid");
+  const advance = f.schedule.find((p) => /^Advance/.test(p.label));
+  const retentionHeld = Math.round(
+    paidToDate * (parseFloat(f.retentionPercent) / 100 || 0),
+  );
+  return { paidToDate, invoicedToDate, outstanding, nextPayment, advance, retentionHeld };
+}
 
 const TASK_ORDER: TaskStatus[] = ["To do", "In progress", "Done"];
 const RISK_CYCLE: RiskStatus[] = ["Open", "Mitigating", "Closed"];
@@ -623,11 +672,14 @@ const VENDOR_DOC_SUB: Record<VendorDocType, string> = {
 function VendorModal({
   vendor,
   onClose,
+  onAdvancePayment,
 }: {
   vendor: Vendor;
   onClose: () => void;
+  onAdvancePayment: (paymentId: string) => void;
 }) {
   const [docViewer, setDocViewer] = useState<DocViewer | null>(null);
+  const fin = financeSummary(vendor.finance);
 
   function openDoc(type: VendorDocType) {
     const blob = new Blob([buildVendorDocHtml(vendor, type)], {
@@ -722,6 +774,129 @@ function VendorModal({
           </div>
 
           <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+              Finance
+            </h3>
+            {/* Summary tiles */}
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div>
+                <dt className="text-[11px] text-stone-400">Order value</dt>
+                <dd className="text-[13px] font-medium text-ink">
+                  {vendor.contractValue}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-stone-400">Advance</dt>
+                <dd className="mt-0.5 flex items-center gap-1.5">
+                  {fin.advance ? (
+                    <>
+                      <span className="text-[13px] font-medium text-ink">
+                        {formatINR(fin.advance.amountValue)}
+                      </span>
+                      <NeutralPill
+                        label={fin.advance.status}
+                        tone={PAYMENT_TONE[fin.advance.status]}
+                      />
+                    </>
+                  ) : (
+                    <span className="text-[13px] text-stone-400">—</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-stone-400">Invoiced to date</dt>
+                <dd className="text-[13px] font-medium text-ink">
+                  {formatINR(fin.invoicedToDate)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-stone-400">Paid to date</dt>
+                <dd className="text-[13px] font-medium text-ink">
+                  {formatINR(fin.paidToDate)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-stone-400">Outstanding</dt>
+                <dd className="text-[13px] font-medium text-ink">
+                  {formatINR(fin.outstanding)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-stone-400">Retention held</dt>
+                <dd className="text-[13px] font-medium text-ink">
+                  {formatINR(fin.retentionHeld)}
+                </dd>
+              </div>
+            </dl>
+
+            {/* Next payment */}
+            {fin.nextPayment ? (
+              <div className="mt-3 rounded-lg border border-cream-line bg-cream-soft p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
+                    Next payment
+                  </span>
+                  <NeutralPill
+                    label={fin.nextPayment.status}
+                    tone={PAYMENT_TONE[fin.nextPayment.status]}
+                  />
+                </div>
+                <div className="mt-1 flex items-baseline justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-ink">
+                      {fin.nextPayment.label}
+                    </p>
+                    <p className="text-[11px] text-stone-500">
+                      {fin.nextPayment.due}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-bold text-ink">
+                    {formatINR(fin.nextPayment.amountValue)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-stone-500">All payments settled.</p>
+            )}
+
+            {/* Payment schedule */}
+            <div className="mt-4">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+                  Payment schedule
+                </span>
+                <span className="text-[11px] text-stone-400">
+                  Click to advance status
+                </span>
+              </div>
+              <div className="divide-y divide-stone-100 overflow-hidden rounded-lg border border-stone-200">
+                {vendor.finance.schedule.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => onAdvancePayment(p.id)}
+                    className="flex w-full items-center justify-between gap-2 bg-white px-3 py-2.5 text-left transition hover:bg-stone-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium text-ink">
+                        {p.label}
+                      </span>
+                      <span className="block text-[11px] text-stone-400">
+                        {p.due}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="text-[13px] font-semibold text-ink">
+                        {formatINR(p.amountValue)}
+                      </span>
+                      <NeutralPill label={p.status} tone={PAYMENT_TONE[p.status]} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
             <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
               Contact
             </h3>
@@ -762,9 +937,26 @@ function VendorModal({
   );
 }
 
-function Vendors({ project }: { project: Project }) {
-  const [active, setActive] = useState<Vendor | null>(null);
+function Vendors({ project, onUpdate, onToast }: SubProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
   const vendors = project.vendors ?? [];
+  const active = vendors.find((v) => v.id === activeId) ?? null;
+
+  function advancePayment(vendorId: string, paymentId: string) {
+    let label: PaymentStatus = "Scheduled";
+    const next = vendors.map((v) => {
+      if (v.id !== vendorId) return v;
+      const schedule = v.finance.schedule.map((p) => {
+        if (p.id !== paymentId) return p;
+        const cur = PAYMENT_CYCLE.indexOf(p.status);
+        label = PAYMENT_CYCLE[(cur + 1) % PAYMENT_CYCLE.length];
+        return { ...p, status: label };
+      });
+      return { ...v, finance: { ...v.finance, schedule } };
+    });
+    onUpdate({ ...project, vendors: next });
+    onToast(`Payment marked ${label}`);
+  }
 
   if (vendors.length === 0) {
     return (
@@ -784,7 +976,7 @@ function Vendors({ project }: { project: Project }) {
         {vendors.map((v) => (
           <button
             key={v.id}
-            onClick={() => setActive(v)}
+            onClick={() => setActiveId(v.id)}
             className="group flex flex-col rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-navy/40 hover:shadow"
           >
             <div className="flex items-start justify-between gap-2">
@@ -812,9 +1004,128 @@ function Vendors({ project }: { project: Project }) {
       </div>
 
       {active ? (
-        <VendorModal vendor={active} onClose={() => setActive(null)} />
+        <VendorModal
+          vendor={active}
+          onClose={() => setActiveId(null)}
+          onAdvancePayment={(paymentId) => advancePayment(active.id, paymentId)}
+        />
       ) : null}
     </>
+  );
+}
+
+// ---- Securities (EMD / PBG financial instruments) ----
+function SecurityCard({
+  s,
+  onAdvance,
+}: {
+  s: FinancialSecurity;
+  onAdvance: () => void;
+}) {
+  const facts: [string, string][] = [
+    ["Instrument", s.instrument],
+    ["Basis", s.basis],
+    ["Issuing bank", s.issuingBank],
+    ["Reference no.", s.refNo],
+    ["Submitted", s.submittedOn],
+    ["Valid till", s.validTill],
+  ];
+  return (
+    <div className="flex flex-col rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy/5 text-navy">
+            <Lock width={18} height={18} />
+          </span>
+          <div>
+            <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-stone-500 ring-1 ring-inset ring-stone-200">
+              {s.kind}
+            </span>
+            <p className="mt-1 text-sm font-bold text-ink">{s.fullName}</p>
+          </div>
+        </div>
+        <button
+          onClick={onAdvance}
+          className="rounded-md border border-stone-200 px-2 py-0.5 text-xs font-semibold text-stone-600 transition hover:bg-stone-50"
+          title="Click to advance status"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${DOT[SECURITY_TONE[s.status]]}`} />
+            {s.status}
+          </span>
+        </button>
+      </div>
+
+      <p className="mt-3 text-2xl font-extrabold tracking-tight text-ink">
+        {s.amount}
+      </p>
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-stone-100 pt-3">
+        {facts.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-[11px] text-stone-400">{label}</dt>
+            <dd className="text-[13px] font-medium text-ink">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="mt-3 text-xs leading-relaxed text-stone-500">{s.note}</p>
+    </div>
+  );
+}
+
+function Securities({ project, onUpdate, onToast }: SubProps) {
+  const securities = project.securities ?? [];
+
+  function advanceSecurity(id: string) {
+    let label: SecurityStatus = "Submitted";
+    const next = securities.map((s) => {
+      if (s.id !== id) return s;
+      const cur = SECURITY_CYCLE.indexOf(s.status);
+      label = SECURITY_CYCLE[(cur + 1) % SECURITY_CYCLE.length];
+      return { ...s, status: label };
+    });
+    onUpdate({ ...project, securities: next });
+    onToast(`Security marked ${label}`);
+  }
+
+  if (securities.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-stone-300 bg-white p-10 text-center text-sm text-stone-400">
+        No financial securities recorded for this project.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-4 rounded-xl border border-cream-line bg-cream-soft p-4">
+        <div className="mb-1 flex items-center gap-2">
+          <ShieldCheck width={16} height={16} className="text-navy" />
+          <h3 className="text-sm font-bold text-ink">Financial securities</h3>
+        </div>
+        <p className="text-[13px] leading-relaxed text-stone-600">
+          EMD and PBG are financial-security instruments used in public
+          procurement and government tenders (GeM, MahaTenders) to ensure fair
+          bidding and contract performance. The{" "}
+          <span className="font-semibold text-ink">Earnest Money Deposit</span> is
+          furnished with the bid to guarantee a genuine offer, and the{" "}
+          <span className="font-semibold text-ink">
+            Performance Bank Guarantee
+          </span>{" "}
+          is furnished after award to secure delivery against the contract.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {securities.map((s) => (
+          <SecurityCard
+            key={s.id}
+            s={s}
+            onAdvance={() => advanceSecurity(s.id)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -881,7 +1192,12 @@ export function ProjectScreen({
         <Tasks project={project} onUpdate={onUpdate} onToast={onToast} />
       )}
       {sub === "team" && <Team project={project} />}
-      {sub === "vendors" && <Vendors project={project} />}
+      {sub === "vendors" && (
+        <Vendors project={project} onUpdate={onUpdate} onToast={onToast} />
+      )}
+      {sub === "securities" && (
+        <Securities project={project} onUpdate={onUpdate} onToast={onToast} />
+      )}
       {sub === "risks" && (
         <SlasAndRisks project={project} onUpdate={onUpdate} onToast={onToast} />
       )}
